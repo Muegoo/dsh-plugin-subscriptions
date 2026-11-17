@@ -1,6 +1,4 @@
-# dsh-plugin-subscriptions [![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
-
-English | [中文](README.zh.md)
+# dsh-plugin-subscriptions
 
 Use your **ChatGPT (Codex)**, **Claude**, **Grok (X Premium)**, **GitHub Copilot**, and **Google Antigravity** subscriptions as LLM providers in [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) — no API keys. Codex, Grok, and Antigravity log in via OAuth in the dsh web UI (Settings → Subscriptions), while Copilot uses the GitHub OAuth device flow; Claude imports credentials from an existing Claude Code session when there is one (macOS Keychain or `~/.claude/.credentials.json`) and otherwise falls back to the same browser OAuth flow, so the Claude Code CLI is not required. Tokens live at `~/.dsh/plugins/subscriptions/auth.json` (mode 0600) and refresh automatically.
 
@@ -18,33 +16,21 @@ Group defaults prefer High, then Medium, then Low when no valid saved preference
 
 Antigravity usage keeps explicitly reported shared limits from `retrieveUserQuotaSummary`. The Gemini group includes Argon; native two-group summaries report weekly and five-hour windows for Gemini and Claude/GPT. Account-wide shared quotas remain visible independently of model picker visibility. Settings and the composer dialog show remaining percentages with horizontal bars, without duplicating effort variants. Missing shared groups can supplement uncovered model quotas from `fetchAvailableModels`; a reset timestamp alone never establishes a cadence. Supplemental failures retain valid summaries; cancellation propagates.
 
-## Demo
+## Features
 
-Settings → **Subscriptions**: per-provider login/logout, no API keys. Claude imports credentials from Claude Code when available and otherwise uses OAuth, as Codex and Grok always do (settings screenshots use demo accounts and catalog data):
+Settings → **Subscriptions**: per-provider login/logout, no API keys. Claude imports credentials from Claude Code when available and otherwise uses OAuth, as Codex and Grok always do.
 
-![Subscriptions settings page](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/subscriptions.png)
+Configure visibility, default reasoning effort, and context together in **Edit model list**, with shared Save and Cancel actions.
 
-Configure visibility, default reasoning effort, and context together in **Edit model list**, with shared Save and Cancel actions:
+Configure image generation, video generation, and X search per provider. Tool switches apply only to sessions created after saving.
 
-![Model settings](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/model-settings.png)
+Logged-in providers join the session model picker with their live model catalogs.
 
-Configure image generation, video generation, and X search per provider. Tool switches apply only to sessions created after saving:
-
-![Provider tools](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/provider-tools.png)
-
-Logged-in providers join the session model picker with their live model catalogs:
-
-![Model picker with subscription models](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/model-picker.png)
-
-Models that advertise reasoning levels get an **Effort** selector in the same menu — Codex models, Grok 4.6 / 4.5, and Copilot's reasoning models (levels and defaults come from each provider's live catalog, not a hardcoded list; Copilot's `capabilities.supports.reasoning_effort` array is sent as `reasoning_effort` on chat completions and `reasoning.effort` on the Responses wire). Models listing both Copilot endpoints (gpt-5.4, gpt-5-mini) normally speak chat completions but reroute to `/responses` when a request combines function tools with an effort — Copilot rejects that combination on the chat wire:
-
-![Reasoning effort selector](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/model-effort.png)
+Models that advertise reasoning levels get an **Effort** selector in the same menu — Codex models, Grok 4.6 / 4.5, and Copilot's reasoning models (levels and defaults come from each provider's live catalog, not a hardcoded list; Copilot's `capabilities.supports.reasoning_effort` array is sent as `reasoning_effort` on chat completions and `reasoning.effort` on the Responses wire). Models listing both Copilot endpoints (gpt-5.4, gpt-5-mini) normally speak chat completions but reroute to `/responses` when a request combines function tools with an effort — Copilot rejects that combination on the chat wire.
 
 Codex models whose catalog advertises the fast tier (the codex CLI's fast mode) get a **Speed** toggle in the composer's tool row, next to the model selector — Standard or Fast (`service_tier: priority`), per session. The `/fast` slash command offers the same choice as a popup; it errors with an explanation when the current model has no fast tier.
 
 Subagents have a separate per-model default: **Settings → Subscriptions → ChatGPT (Codex) → Manage → Edit model list → Subagent default speed**. Save changes to apply it to subsequent requests, including running subagents. This setting persists across restarts and works regardless of the parent model; main-session Speed choices do not propagate to children. A speed explicitly selected in a child session overrides its model default, including Standard. Explicit session choices reset on restart. Fast still requires catalog support for the actual Codex model. Hosts without live agent origin metadata keep Standard unless the session has an explicit speed choice.
-
-![Speed toggle with the Standard/Fast menu open](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/speed-toggle.png)
 
 The composer's stats row gains a **subscription usage** pill showing quota information for the provider of the session's current model (Codex for a Codex model, Grok for a Grok model, and so on). It shows at most one provider: when switching to a non-subscription model, it keeps the most recent subscription selected in the mounted conversation view, or stays hidden if there is none. This recent-model history is not persisted across page reloads. Click the pill to expand every logged-in provider and account — the default account is starred, and the current provider is listed first. Antigravity previews only the current model's windows (at most two per account); the other model windows remain available in a closed disclosure.
 
@@ -56,19 +42,11 @@ For multiple accounts, the compact pill says e.g. “Codex · 2 signed-in accoun
 
 Expanded details and Settings show the last successful fetch time, stale status and the next permitted retry after a failed refresh, when known. Unsupported quota queries, empty results, and failed queries without a previous snapshot have distinct messages. If an older backend omits quota timestamps, the UI shows when it received the response and explicitly says the quota update time was not provided; receipt time never proves that upstream quota was refreshed. Clicking the account Refresh button requests `force: true`, but endpoint failure cooldowns still apply. Opening the badge rereads normally, not forcibly. Existing snapshots survive failures without being relabeled fresh; the endpoint cooldown remains intact. Open Settings and badges share successful usage reads in connection-local memory and reread that memory on focus, without additional upstream requests. This does not poll the server cache on focus; normal badge polling and manual refresh retain their existing behavior. The preference never changes internal `usedPercent`, account selection, exhaustion protection or cooldowns. Pool membership and successful-serving-account telemetry remain separate follow-ups to [#202](https://github.com/V1ki/dsh-plugin-subscriptions/issues/202). Antigravity summary endpoints/grouping in #182, #184 and #187 are not incorporated here.
 
-![Subscription usage pill expanded to show every provider and account](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/usage-badge.png)
+The `image_generate` tool renders its result inline in the conversation.
 
-The `image_generate` tool renders its result inline in the conversation:
+Its `provider` parameter selects the GPT (`gpt-image-2`) or Grok (`grok-imagine-image-2.0`) image backend.
 
-![image_generate renders the image inline](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/image-generate-inline.png)
-
-Its `provider` parameter picks the image backend — the same prompt through GPT (`gpt-image-2`, top) and Grok (`grok-imagine-image-2.0`, bottom):
-
-![image_generate with provider gpt vs grok](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/image-generate-providers.png)
-
-The `video_generate` tool plays the generated clip inline:
-
-![video_generate plays the clip inline](https://raw.githubusercontent.com/V1ki/dsh-plugin-subscriptions/main/docs/images/video-generate-inline.png)
+The `video_generate` tool plays the generated clip inline.
 
 ## Providers
 
@@ -95,14 +73,13 @@ Also included, registered when the matching provider is enabled:
 
 Codex edits use `/backend-api/codex/images/edits`; Grok edits use `/v1/images/edits`. Existing provider preference, logged-out fallback, and session tool policy still apply. Empty arrays, duplicate or invalid references, and attachment-limit violations fail explicitly instead of generating a new image. Editing requires the DSH attachment service.
 
-
 Image generation and editing share same-provider account scheduling: try the default account first, then prefer the successful account in that session. Explicit quota, authentication, or image-entitlement rejection tries the remaining accounts; a 401 gets at most one credential refresh and retry first. Image-only cooldowns honor provider reset times and clear on login/logout. Transport failures, timeouts, 5xx responses, and invalid requests do not automatically resend, avoiding duplicate images. Set `pool.enabled: false` or `pool.autoAccounts: false` (legacy `autoFamilies` is accepted) to use only the default account. Image scheduling does not use chat catalogs, chat quota scoring, `families`, or `tiers`.
 
 ## Install
 
 ### DSH compatibility
 
-DSH peers use two short ranges with no upper bound: `>=0.2.0-rc.2 || >=0.2.1-0`. The first retains the minimum supported version; the second admits all `0.2.1` alpha/RC builds under npm/pnpm's default peer matching, avoiding version-mismatch warnings from these five DSH peers for that release line. Maintain one prerelease anchor per supported release line, not an entry for every RC. Development dependencies remain pinned to `0.2.1-rc.2`.
+DSH peers use ranges with no upper bound: `>=0.2.0-rc.2 || >=0.2.1-0 || >=0.2.2-0`. The first retains the minimum supported version; the other anchors admit `0.2.1` and `0.2.2` prereleases under npm/pnpm's default peer matching. Maintain one prerelease anchor per supported release line, not an entry for every RC. DSH development dependencies are pinned to `0.2.2-rc.3`.
 
 Harness uses `includePrerelease: true` and admits all versions at or above the minimum, including future prereleases. npm/pnpm default matching admits later stable versions but requires an explicit prerelease anchor for each new release line (for example, `>=0.2.2-0` for `0.2.2` prereleases). There is no upper bound: future incompatible releases are not blocked, and admission does not guarantee runtime compatibility.
 
@@ -132,10 +109,12 @@ With the `dsh` CLI available, install from npm (prebuilt artifacts, no build per
 dsh plugin --profile web add dsh-plugin-subscriptions
 ```
 
+The npm package is the upstream release. The GitHub and local checkout instructions below use this fork.
+
 Or install the sources from GitHub:
 
 ```sh
-dsh plugin --profile web add github:V1ki/dsh-plugin-subscriptions
+dsh plugin --profile web add github:Muegoo/dsh-plugin-subscriptions
 ```
 
 pnpm will ask you to allow this package's build script on first install (git installs fetch sources, not built artifacts); add the printed key to the profile's `pnpm-workspace.yaml`:
@@ -150,10 +129,12 @@ and re-run the `add`. Only grant this to packages you trust — it runs the pack
 From a local checkout instead:
 
 ```sh
-git clone https://github.com/V1ki/dsh-plugin-subscriptions.git
+git clone https://github.com/Muegoo/dsh-plugin-subscriptions.git
 cd dsh-plugin-subscriptions && pnpm install && pnpm build
-dsh plugin --profile web add ./dsh-plugin-subscriptions
+dsh plugin --profile web add /absolute/path/to/dsh-plugin-subscriptions
 ```
+
+On macOS Desktop, build a local checkout as above, then open **Plugins → Add plugin → Install a third-party plugin** and enter its absolute path, for example `/absolute/path/to/dsh-plugin-subscriptions`. Check the enable control after installation. Desktop uses its `desktop` profile, separate from the CLI's `web` profile above; restart Desktop after rebuilding to reload the plugin.
 
 Headless-only usage without installing into a profile (log in via the web UI first — the token file is shared):
 
@@ -170,7 +151,7 @@ Installed from npm:
 dsh plugin --profile web update --latest dsh-plugin-subscriptions
 ```
 
-Installed from GitHub: re-run the same `add github:V1ki/dsh-plugin-subscriptions` command — it re-fetches the sources and rebuilds. A linked local checkout just needs `git pull && pnpm build` in the checkout.
+Installed from GitHub: re-run the same `add github:Muegoo/dsh-plugin-subscriptions` command — it re-fetches the sources and rebuilds. A linked local checkout just needs `git pull && pnpm build` in the checkout.
 
 Either way, restart `dsh web` afterwards so the new version loads.
 
@@ -185,6 +166,10 @@ Not logged in? The provider stays out of the picker, and requests fail with `MIS
 ### Multiple accounts
 
 Every provider accepts several accounts: once one is connected, the card grows an **Add account** button (Claude offers **Browser authorization** and **Import Claude Code** separately). Accounts are keyed by their identity (email / login) — re-logging the same account updates it in place, a different account appends. Browser authorization signs in whichever account the browser currently uses, so switch accounts there first (or use an incognito window with the manual code) to add a different one. The ★ default account serves the direct provider routes; pool routes use every account. A Claude account imported from Claude Code stays synced with the CLI's credential store; OAuth-added Claude accounts refresh standalone so several accounts never fight over the Keychain entry.
+
+DSH supplies conversation messages to each request; this plugin does not import, export, or sync Codex CLI or OpenCode sessions. Account-bound model entries route each request to their encoded account. The plugin does not propagate a parent's account or model selection to child sessions; routing uses the model selection supplied by DSH and pool affinity tracked separately per session. See [Account and model management](docs/account-management.md).
+
+This plugin provides the subscriptions listed above, not a generic company OpenAI-compatible provider or an OpenCode worker-dispatch tool. Quota is available through the UI and RPC, but the plugin does not expose an LLM-facing quota tool.
 
 ### Edit visible models, context windows, and tools
 
@@ -339,7 +324,7 @@ This plugin only supplies model routes. Approval policy lives elsewhere:
 ## Develop
 
 ```sh
-pnpm install   # development baseline: published DSH 0.2.1-rc.2 packages
+pnpm install   # development baseline: published DSH 0.2.2-rc.3 packages
 pnpm build     # tsc (lib/) + tsdown (lib/client.js browser bundle)
 pnpm test      # node --test over compiled unit specs
 ```
